@@ -25,11 +25,12 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.sincronizarConNube = async function(entriesData, prodData) {
+    window.sincronizarConNube = async function(entriesData, prodData, tasksData) {
         try {
             await setDoc(doc(db, "dashboard", "estadoActual"), { 
                 entries: entriesData, 
                 productions: prodData,
+                tasks: tasksData || [],
                 actualizado: new Date() 
             });
             const status = document.getElementById('saveStatus');
@@ -157,6 +158,13 @@
   }
   button.ghost:hover{border-color:var(--red); color:var(--red);}
 
+  /* Pique / Tareas de guerrilla estilos */
+  .pique-box {display:grid; gap:8px; margin-bottom:14px;}
+  .pique-item {display:flex; align-items:center; justify-content:space-between; background:var(--bg-panel-2); border:1px solid var(--line); padding:10px 12px; border-radius:2px;}
+  .pique-item.completed span {text-decoration: line-through; color:var(--text-dim); opacity:0.6;}
+  .pique-left {display:flex; align-items:center; gap:10px;}
+  .pique-left input[type="checkbox"] {width:16px; height:16px; cursor:pointer;}
+
   table{width:100%; border-collapse:collapse; font-size:13px;}
   th{
     text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase;
@@ -207,6 +215,16 @@
   </nav>
 
   <section id="dashboard" class="active">
+    <div class="panel">
+      <h2>🔥 Pique Operativo de Hoy (Acciones de Guerrilla)</h2>
+      <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px; font-style:italic;">Lo que urge arrancar, subir o coordinar hoy mismo.</div>
+      <div class="pique-box" id="piqueBox"></div>
+      <form id="piqueForm" style="display:flex; gap:8px; margin-top:10px;">
+        <input type="text" id="piqueInput" placeholder="ej. Subir historia de prueba, etiquetar a DJ..." required style="flex:1;">
+        <button type="submit" class="primary" style="padding:9px 14px;">Agregar</button>
+      </form>
+    </div>
+
     <div class="kpis" id="kpiRow"></div>
     <div class="panel">
       <h2>Alcance / Profile views en el tiempo</h2>
@@ -310,7 +328,7 @@
         </div>
         <div class="full">
           <label>Cómo será (Edición / Revelado / Estilo)</label>
-          <textarea id="p_edicion" placeholder="ej. Contraste alto, sombras profundas, conservar grano natural de la noche, paleta fría."></textarea>
+          <textarea id="p_edicion" placeholder="ej. Contraste alto, sombras profondes, conservar grano natural de la noche, paleta fría."></textarea>
         </div>
         <div class="full">
           <label>La entrega (Formato / Plazos / Cliente)</label>
@@ -340,8 +358,10 @@
 <script>
 const STORAGE_KEY_METRICS = 'pupilasilva:entries';
 const STORAGE_KEY_PROD = 'pupilasilva:production';
+const STORAGE_KEY_TASKS = 'pupilasilva:tasks';
 let entries = [];
 let productions = [];
+let tasks = [];
 let chart = null;
 
 function fmt(n){ return (n===null||n===undefined||n==='') ? '—' : Number(n).toLocaleString('es-MX'); }
@@ -358,44 +378,53 @@ const SEED_PROD = [
   {id:2, titulo:'Serie Retrato Conceptual Abuelo', status:'producir', necesita:'Esquema de iluminación de estudio controlado, fondo neutro.', edicion:'Blanco y negro con grano fino y definición profunda.', entrega:'Serie final para portafolio editorial.'}
 ];
 
+const SEED_TASKS = [
+  {id:1, text:'Subir historia destacando nueva sesión nocturna', done:false},
+  {id:2, text:'Handle / etiquetar a colaborador local en IG', done:false},
+  {id:3, text:'Revisar tomas en laptop HP (Live View Canon 70D)', done:true}
+];
+
 async function loadData(){
-  // Intentar cargar primero de Firebase si está disponible
+  let hasCloudData = false;
   try {
     if(window.cargarDeNube) {
       const cloudData = await window.cargarDeNube();
       if(cloudData) {
-        if(cloudData.entries) entries = cloudData.entries;
-        if(cloudData.productions) productions = cloudData.productions;
+        if(cloudData.entries) { entries = cloudData.entries; hasCloudData = true; }
+        if(cloudData.productions) { productions = cloudData.productions; hasCloudData = true; }
+        if(cloudData.tasks) { tasks = cloudData.tasks; hasCloudData = true; }
       }
     }
-  } catch(e) {
-    console.log("Usando almacenamiento local de respaldo");
+  }catch(e){
+    console.log("Error cargando de nube, usando local");
   }
 
-  // Si no hay en nube, recurrir a localStorage o seeds
-  if(entries.length === 0) {
+  if(!hasCloudData){
     try {
       const m = localStorage.getItem(STORAGE_KEY_METRICS);
-      entries = m ? JSON.parse(m) : [];
-    } catch(e) { entries = []; }
-  }
-
-  if(productions.length === 0) {
-    try {
       const p = localStorage.getItem(STORAGE_KEY_PROD);
-      productions = p ? JSON.parse(p) : [];
-    } catch(e) { productions = []; }
+      const t = localStorage.getItem(STORAGE_KEY_TASKS);
+      if(m !== null) entries = JSON.parse(m);
+      if(p !== null) productions = JSON.parse(p);
+      if(t !== null) tasks = JSON.parse(t);
+    }catch(e){}
   }
 
-  if(entries.length===0){
+  const mCheck = localStorage.getItem(STORAGE_KEY_METRICS);
+  const pCheck = localStorage.getItem(STORAGE_KEY_PROD);
+  const tCheck = localStorage.getItem(STORAGE_KEY_TASKS);
+  
+  if(mCheck === null && !hasCloudData && entries.length === 0){
     entries = SEED_METRICS.map((e,i)=>({...e, id: Date.now()+i, order:i+1}));
   }
-  if(productions.length===0){
+  if(pCheck === null && !hasCloudData && productions.length === 0){
     productions = SEED_PROD;
+  }
+  if(tCheck === null && !hasCloudData && tasks.length === 0){
+    tasks = SEED_TASKS;
   }
   
   entries.sort((a,b)=> (a.order||0) - (b.order||0));
-  saveLocalAndCloud();
   render();
 }
 
@@ -403,8 +432,9 @@ async function saveLocalAndCloud(){
   try {
     localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(entries));
     localStorage.setItem(STORAGE_KEY_PROD, JSON.stringify(productions));
+    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
     if(window.sincronizarConNube) {
-      await window.sincronizarConNube(entries, productions);
+      await window.sincronizarConNube(entries, productions, tasks);
     }
   } catch(e) {
     console.error("Error al guardar:", e);
@@ -448,6 +478,37 @@ document.getElementById('prodForm').addEventListener('submit', async (e)=>{
   render();
 });
 
+document.getElementById('piqueForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const textInput = document.getElementById('piqueInput');
+  const task = {
+    id: Date.now(),
+    text: textInput.value.trim(),
+    done: false
+  };
+  tasks.push(task);
+  await saveLocalAndCloud();
+  textInput.value = '';
+  renderPique();
+});
+
+async function toggleTask(id){
+  const t = tasks.find(x=>x.id===id);
+  if(t){
+    t.done = !t.done;
+    await saveLocalAndCloud();
+    renderPique();
+  }
+}
+window.toggleTask = toggleTask;
+
+async function deleteTask(id){
+  tasks = tasks.filter(x=>x.id!==id);
+  await saveLocalAndCloud();
+  renderPique();
+}
+window.deleteTask = deleteTask;
+
 async function deleteEntry(id){
   entries = entries.filter(x=>x.id!==id);
   await saveLocalAndCloud();
@@ -473,7 +534,7 @@ async function updateProdStatus(id, newStatus){
 window.updateProdStatus = updateProdStatus;
 
 function exportData(){
-  const fullData = {entries, productions};
+  const fullData = {entries, productions, tasks};
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
   const dlAnchor = document.createElement('a');
   dlAnchor.setAttribute("href", dataStr);
@@ -493,6 +554,7 @@ function importData(event){
       if(imported.entries && imported.productions){
         entries = imported.entries;
         productions = imported.productions;
+        tasks = imported.tasks || [];
         await saveLocalAndCloud();
         render();
         alert('Respaldo cargado y sincronizado con éxito.');
@@ -502,6 +564,23 @@ function importData(event){
     }
   };
   reader.readAsText(file);
+}
+
+function renderPique(){
+  const box = document.getElementById('piqueBox');
+  if(tasks.length === 0){
+    box.innerHTML = '<div class="empty" style="padding:10px 0;">No hay acciones pendientes para hoy.</div>';
+    return;
+  }
+  box.innerHTML = tasks.map(t => `
+    <div class="pique-item ${t.done ? 'completed' : ''}">
+      <div class="pique-left">
+        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
+        <span style="font-size:13px;">${t.text}</span>
+      </div>
+      <button class="ghost" onclick="deleteTask(${t.id})">Borrar</button>
+    </div>
+  `).join('');
 }
 
 function renderKPIs(){
@@ -650,6 +729,7 @@ function renderTable(){
 }
 
 function render(){
+  renderPique();
   renderKPIs();
   renderChart();
   renderReading();
