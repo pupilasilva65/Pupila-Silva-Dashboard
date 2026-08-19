@@ -720,6 +720,31 @@ function renderTable(){
     <tbody>${rows}</tbody>
   </table>`;
 }
+let editingId = null;
+
+function editEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+
+  editingId = id;
+  document.getElementById('f_fecha').value = e.fecha || '';
+  document.getElementById('f_plataforma').value = e.plataforma || 'ig';
+  document.getElementById('f_pilar').value = e.pilar || 'collab';
+  document.getElementById('f_reach').value = e.reach || '';
+  document.getElementById('f_views').value = e.views || '';
+  document.getElementById('f_eng').value = e.eng || '';
+  document.getElementById('f_followers').value = e.followers || '';
+  document.getElementById('f_collab').checked = !!e.collab;
+  document.getElementById('f_nota').value = e.nota || '';
+
+  document.querySelector('nav button[data-tab="registro"]').click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  document.querySelector('#registro .panel h2').textContent = "Editar entrada de métricas";
+  document.querySelector('#entryForm button[type="submit"]').textContent = "Actualizar entrada";
+  document.getElementById('cancelEditBtn').style.display = 'inline-block';
+}
+window.editEntry = editEntry;
 
 
 function render(){
