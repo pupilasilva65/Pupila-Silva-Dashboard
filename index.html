@@ -735,12 +735,19 @@ document.querySelectorAll('nav button').forEach(btn=>{
   });
 });
 
-// Arranca el sistema asegurando la escucha de Firestore
+// Esperar un momento prudente a que los SDKs de Firebase carguen por completo
 setTimeout(() => {
-  if (typeof inicializarDatos === 'function') {
+  if (typeof window.iniciarEscuchaRemota === 'function') {
+    console.log("Iniciando escucha remota de Firestore...");
     inicializarDatos();
+  } else {
+    console.warn("Esperando conexión con Firebase...");
+    setTimeout(() => {
+      if (typeof inicializarDatos === 'function') inicializarDatos();
+    }, 1000);
   }
-}, 300);
+}, 500);
+
 
 </script>
 </body>
