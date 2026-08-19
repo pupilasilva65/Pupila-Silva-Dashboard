@@ -387,7 +387,7 @@ const SEED_TASKS = [
 ];
 
 function inicializarDatos() {
-  // Primero intentamos arrancar con los datos por defecto o semillas locales por si tardara la red
+  console.log("Cargando datos locales iniciales...");
   entries = SEED_METRICS.map((e,i)=>({...e, id: Date.now()+i, order:i+1}));
   productions = SEED_PROD;
   tasks = SEED_TASKS;
@@ -395,23 +395,25 @@ function inicializarDatos() {
   entries.sort((a,b)=> (a.order||0) - (b.order||0));
   render();
 
-  // Activa el escuchador en tiempo real de Firebase con máxima prioridad
+  console.log("Intentando conectar con Firebase Firestore...");
   if(window.iniciarEscuchaRemota) {
     window.iniciarEscuchaRemota((cloudData) => {
-      // Validamos que la nube realmente traiga datos para sobreescribir
+      console.log("¡Datos recibidos de la nube en tiempo real!", cloudData);
       if(cloudData.entries && cloudData.entries.length > 0) entries = cloudData.entries;
       if(cloudData.productions && cloudData.productions.length > 0) productions = cloudData.productions;
       if(cloudData.tasks) tasks = cloudData.tasks;
       
-      // Sincronizamos el localStorage con lo verídico que viene de Firestore
       localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(entries));
       localStorage.setItem(STORAGE_KEY_PROD, JSON.stringify(productions));
       localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
       
       render();
     });
+  } else {
+    console.warn("ALERTA: window.iniciarEscuchaRemota no está definido o no se cargó el script de Firebase.");
   }
 }
+
 
 
 async function saveLocalAndCloud(){
