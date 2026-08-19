@@ -735,8 +735,13 @@ document.querySelectorAll('nav button').forEach(btn=>{
   });
 });
 
-// Arranca el sistema con escucha de Firestore en tiempo real
-inicializarDatos();
+// Arranca el sistema asegurando la escucha de Firestore
+setTimeout(() => {
+  if (typeof inicializarDatos === 'function') {
+    inicializarDatos();
+  }
+}, 300);
+
 </script>
 </body>
 </html>
