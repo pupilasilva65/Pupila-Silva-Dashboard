@@ -387,31 +387,23 @@ const SEED_TASKS = [
 ];
 
 function inicializarDatos() {
-  // Carga semilla inicial local si no hay nada
-  try {
-    const m = localStorage.getItem(STORAGE_KEY_METRICS);
-    const p = localStorage.getItem(STORAGE_KEY_PROD);
-    const t = localStorage.getItem(STORAGE_KEY_TASKS);
-    if(m !== null) entries = JSON.parse(m);
-    if(p !== null) productions = JSON.parse(p);
-    if(t !== null) tasks = JSON.parse(t);
-  }catch(e){}
-
-  if(entries.length === 0) entries = SEED_METRICS.map((e,i)=>({...e, id: Date.now()+i, order:i+1}));
-  if(productions.length === 0) productions = SEED_PROD;
-  if(tasks.length === 0) tasks = SEED_TASKS;
+  // Primero intentamos arrancar con los datos por defecto o semillas locales por si tardara la red
+  entries = SEED_METRICS.map((e,i)=>({...e, id: Date.now()+i, order:i+1}));
+  productions = SEED_PROD;
+  tasks = SEED_TASKS;
   
   entries.sort((a,b)=> (a.order||0) - (b.order||0));
   render();
 
-  // Activa el escuchador en tiempo real de Firebase
+  // Activa el escuchador en tiempo real de Firebase con máxima prioridad
   if(window.iniciarEscuchaRemota) {
     window.iniciarEscuchaRemota((cloudData) => {
-      if(cloudData.entries) entries = cloudData.entries;
-      if(cloudData.productions) productions = cloudData.productions;
+      // Validamos que la nube realmente traiga datos para sobreescribir
+      if(cloudData.entries && cloudData.entries.length > 0) entries = cloudData.entries;
+      if(cloudData.productions && cloudData.productions.length > 0) productions = cloudData.productions;
       if(cloudData.tasks) tasks = cloudData.tasks;
       
-      // Guarda también localmente para consistencia offline
+      // Sincronizamos el localStorage con lo verídico que viene de Firestore
       localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(entries));
       localStorage.setItem(STORAGE_KEY_PROD, JSON.stringify(productions));
       localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
@@ -420,6 +412,7 @@ function inicializarDatos() {
     });
   }
 }
+
 
 async function saveLocalAndCloud(){
   try {
