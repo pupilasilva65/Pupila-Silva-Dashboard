@@ -710,8 +710,8 @@ function renderTable(){
       <td style="color:var(--text-dim); max-width:160px;">${e.nota || ''}</td>
       <td>
         <div style="display:flex; gap:6px;">
-          <button class="ghost" onclick="editEntry(${e.id})">Editar</button>
-          <button class="ghost" onclick="deleteEntry(${e.id})">Borrar</button>
+          <button class="ghost" ="editEntry(${e.id})">Editar</button>
+          <button class="ghost" ="deleteEntry(${e.id})">Borrar</button>
         </div>
       </td>
     </tr>`).join('');
@@ -801,6 +801,12 @@ setTimeout(() => {
   }
 }, 500);
 
+document.addEventListener('click', function(event) {
+  if (event.target.classList.contains('btn-edit')) {
+    const id = parseInt(event.target.getAttribute('data-id'));
+    editEntry(id); // Esto llamará a tu función directamente
+  }
+});
 
 </script>
 </body>
