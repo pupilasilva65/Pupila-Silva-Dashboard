@@ -723,9 +723,15 @@ function renderTable(){
 let editingId = null;
 
 function editEntry(id) {
-  const e = entries.find(x => x.id === id);
-  if (!e) return;
+  console.log("Intentando editar ID:", id);
+  const e = entries.find(x => String(x.id) === String(id));
+  
+  if (!e) {
+    console.log("No se encontró la entrada con ID:", id, "en:", entries);
+    return;
+  }
 
+  console.log("Entrada encontrada, cargando formulario...");
   editingId = id;
   document.getElementById('f_fecha').value = e.fecha || '';
   document.getElementById('f_plataforma').value = e.plataforma || 'ig';
@@ -744,7 +750,9 @@ function editEntry(id) {
   document.querySelector('#entryForm button[type="submit"]').textContent = "Actualizar entrada";
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
 }
-window.editEntry = function(id) {
+window.editEntry = editEntry;
+
+
   const e = entries.find(x => x.id === id);
   if (!e) return;
 
