@@ -708,13 +708,19 @@ function renderTable(){
       <td>${fmt(e.views)}</td>
       <td>${fmt(e.eng)}</td>
       <td style="color:var(--text-dim); max-width:160px;">${e.nota || ''}</td>
-      <td><button class="ghost" onclick="deleteEntry(${e.id})">Borrar</button></td>
+      <td>
+        <div style="display:flex; gap:6px;">
+          <button class="ghost" onclick="editEntry(${e.id})">Editar</button>
+          <button class="ghost" onclick="deleteEntry(${e.id})">Borrar</button>
+        </div>
+      </td>
     </tr>`).join('');
   wrap.innerHTML = `<table>
-    <thead><tr><th>Fecha</th><th>Tipo</th><th>Reach</th><th>Views</th><th>Eng.</th><th>Nota</th><th></th></tr></thead>
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Reach</th><th>Views</th><th>Eng.</th><th>Nota</th><th>Acciones</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
+
 
 function render(){
   renderPique();
